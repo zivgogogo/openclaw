@@ -286,7 +286,8 @@ img.chat-avatar {
 }
 
 .chat-copy-btn:focus-visible,
-.chat-expand-btn:focus-visible {
+.chat-expand-btn:focus-visible,
+.chat-pin-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -295,6 +296,61 @@ img.chat-avatar {
   display: inline-flex;
   width: 14px;
   height: 14px;
+}
+
+/* Pin to dashboard button */
+.chat-pin-btn {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.chat-pin-btn__icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  position: relative;
+}
+
+.chat-pin-btn__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chat-pin-btn__icon-pin,
+.chat-pin-btn__icon-check {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 150ms ease;
+}
+
+.chat-pin-btn__icon-check {
+  opacity: 0;
+}
+
+.chat-pin-btn[data-pinned="1"] .chat-pin-btn__icon-pin {
+  opacity: 0;
+}
+
+.chat-pin-btn[data-pinned="1"] .chat-pin-btn__icon-check {
+  opacity: 1;
+}
+
+.chat-pin-btn[data-pinning="1"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-pin-btn[data-error="1"] {
+  border-color: var(--danger-subtle);
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+.chat-pin-btn[data-pinned="1"] {
+  border-color: var(--ok-subtle);
+  background: var(--ok-subtle);
+  color: var(--ok);
 }
 
 /* Light mode: restore borders */

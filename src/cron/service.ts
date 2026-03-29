@@ -54,6 +54,10 @@ export class CronService {
     return this.state.store?.jobs.find((job) => job.id === id);
   }
 
+  getJobs(): CronJob[] {
+    return this.state.store?.jobs ?? [];
+  }
+
   wake(opts: { mode: "now" | "next-heartbeat"; text: string }) {
     return ops.wakeNow(this.state, opts);
   }

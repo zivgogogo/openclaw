@@ -61,6 +61,12 @@ import {
   updateCronJobsFilter,
   updateCronRunsFilter,
 } from "./controllers/cron.ts";
+import {
+  refreshDashboard,
+  handleDashboardPin,
+  handleDashboardUnpin,
+  handleDashboardDelete,
+} from "./controllers/dashboard.ts";
 import { loadDebug, callDebugMethod } from "./controllers/debug.ts";
 import {
   approveDevicePairing,
@@ -87,6 +93,83 @@ import {
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import "./components/dashboard-header.ts";
+import "./components/floating-panel.js";
+import { renderDashboard } from "./views/dashboard.js";
+
+// ---------------------------------------------------------------------------
+// FAB 可拖拽状态（模块级闭包，避免重绘丢失位置）
+// ---------------------------------------------------------------------------
+const _fabState = {
+  x: -1, // -1 表示未初始化，使用 CSS 默认位置
+  y: -1,
+  dragging: false,
+  startX: 0,
+  startY: 0,
+  startMouseX: 0,
+  startMouseY: 0,
+  moved: false,
+};
+
+function _fabOnMouseDown(e: MouseEvent, el: HTMLElement) {
+  if (e.button !== 0) {
+    return;
+  }
+  const rect = el.getBoundingClientRect();
+  _fabState.x = rect.left;
+  _fabState.y = rect.top;
+  _fabState.startX = rect.left;
+  _fabState.startY = rect.top;
+  _fabState.startMouseX = e.clientX;
+  _fabState.startMouseY = e.clientY;
+  _fabState.dragging = true;
+  _fabState.moved = false;
+
+  // Apply fixed position immediately
+  el.style.left = rect.left + "px";
+  el.style.top = rect.top + "px";
+  el.style.right = "";
+  el.style.bottom = "";
+  el.style.transition = "none";
+  el.classList.add("dashboard-fab--dragging");
+  e.preventDefault();
+
+  const onMove = (ev: MouseEvent) => {
+    if (!_fabState.dragging) {
+      return;
+    }
+    const dx = ev.clientX - _fabState.startMouseX;
+    const dy = ev.clientY - _fabState.startMouseY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      _fabState.moved = true;
+    }
+    const newX = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, _fabState.startX + dx));
+    const newY = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, _fabState.startY + dy));
+    _fabState.x = newX;
+    _fabState.y = newY;
+    el.style.left = newX + "px";
+    el.style.top = newY + "px";
+  };
+
+  const onUp = () => {
+    _fabState.dragging = false;
+    el.classList.remove("dashboard-fab--dragging");
+    el.style.transition = "";
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  };
+
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+}
+
+function _applyFabPosition(el: HTMLElement) {
+  if (_fabState.x >= 0) {
+    el.style.left = _fabState.x + "px";
+    el.style.top = _fabState.y + "px";
+    el.style.right = "";
+    el.style.bottom = "";
+  }
+}
 import { buildExternalLinkRel, EXTERNAL_LINK_TARGET } from "./external-link.ts";
 import { icons } from "./icons.ts";
 import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
@@ -1521,6 +1604,68 @@ export function renderApp(state: AppViewState) {
               assistantAvatar: state.assistantAvatar,
               basePath: state.basePath ?? "",
             })
+          : nothing}
+        ${state.tab === "chat"
+          ? html`
+              <button
+                class="dashboard-fab"
+                style=${_fabState.x >= 0
+                  ? `left:${_fabState.x}px;top:${_fabState.y}px;right:auto;bottom:auto`
+                  : ""}
+                @mousedown=${(e: MouseEvent) => {
+                  const el = e.currentTarget as HTMLElement;
+                  _fabOnMouseDown(e, el);
+                }}
+                @click=${(e: MouseEvent) => {
+                  if (_fabState.moved) {
+                    e.preventDefault();
+                    return;
+                  }
+                  const wasOpen = state.dashboardPanelOpen;
+                  state.dashboardPanelOpen = !wasOpen;
+                  if (!wasOpen && !state.dashboardCards.length) {
+                    void refreshDashboard(state);
+                  }
+                }}
+                title="看板"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+              </button>
+              <floating-panel
+                .open=${state.dashboardPanelOpen}
+                .panelTitle=${"Skills Dashboard"}
+                .panelContent=${state.dashboardPanelOpen
+                  ? renderDashboard({
+                      cards: state.dashboardCards,
+                      pinnedCards: state.dashboardCards.filter((c) => c.isPinned),
+                      filters: state.dashboardFilters,
+                      loading: state.dashboardLoading,
+                      onPin: (id: string) => void handleDashboardPin(state, id),
+                      onUnpin: (id: string) => void handleDashboardUnpin(state, id),
+                      onDelete: (id: string) => void handleDashboardDelete(state, id),
+                      onFilterChange: (filters) => {
+                        state.dashboardFilters = filters;
+                        void refreshDashboard(state);
+                      },
+                    })
+                  : nothing}
+                @panel-close=${() => {
+                  state.dashboardPanelOpen = false;
+                }}
+              ></floating-panel>
+            `
           : nothing}
         ${state.tab === "config"
           ? renderConfig({

@@ -15,6 +15,7 @@ import {
   formatReasoningMarkdown,
 } from "./message-extract.ts";
 import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer.ts";
+import { renderPinToDashboardButton } from "./pin-to-dashboard.ts";
 import { isTtsSupported, speakText, stopTts, isTtsSpeaking } from "./speech.ts";
 import { extractToolCards, renderToolCardSidebar } from "./tool-cards.ts";
 
@@ -699,6 +700,7 @@ function renderGroupedMessage(
         ? html`<div class="chat-bubble-actions">
             ${canExpand ? renderExpandButton(markdown!, onOpenSidebar!) : nothing}
             ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown!) : nothing}
+            ${canCopyMarkdown ? renderPinToDashboardButton(markdown!) : nothing}
           </div>`
         : nothing}
       ${isToolMessage

@@ -432,6 +432,17 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
     const payload = evt.payload as GatewayUpdateAvailableEventPayload | undefined;
     host.updateAvailable = payload?.updateAvailable ?? null;
   }
+
+  if (
+    evt.event === "dashboard.card-added" ||
+    evt.event === "dashboard.card-updated" ||
+    evt.event === "dashboard.card-removed"
+  ) {
+    // Reload dashboard cards when the backend sends a change notification
+    void import("./controllers/dashboard.ts").then(({ refreshDashboard }) => {
+      void refreshDashboard(host as unknown as import("./controllers/dashboard.ts").DashboardState);
+    });
+  }
 }
 
 export function applySnapshot(host: GatewayHost, hello: GatewayHelloOk) {

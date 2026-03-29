@@ -146,4 +146,7 @@ export const GATEWAY_EVENTS = [
   "plugin.approval.requested",
   "plugin.approval.resolved",
   GATEWAY_EVENT_UPDATE_AVAILABLE,
+  "dashboard.card-added",
+  "dashboard.card-updated",
+  "dashboard.card-removed",
 ];

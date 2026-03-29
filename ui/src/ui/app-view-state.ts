@@ -1,6 +1,7 @@
 import type { EventLogEntry } from "./app-events.ts";
 import type { CompactionStatus, FallbackStatus } from "./app-tool-stream.ts";
 import type { CronModelSuggestionsState, CronState } from "./controllers/cron.ts";
+import type { DashboardCard, DashboardFilters } from "./controllers/dashboard.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
@@ -304,6 +305,11 @@ export type AppViewState = {
     logsAtBottom: boolean;
     updateAvailable: import("./types.js").UpdateAvailable | null;
     attentionItems: AttentionItem[];
+    // Dashboard (kanban) state
+    dashboardCards: DashboardCard[];
+    dashboardFilters: DashboardFilters;
+    dashboardLoading: boolean;
+    dashboardPanelOpen: boolean;
     paletteOpen: boolean;
     paletteQuery: string;
     paletteActiveIndex: number;

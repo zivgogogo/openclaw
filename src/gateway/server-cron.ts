@@ -19,6 +19,7 @@ import {
 import { CronService } from "../cron/service.js";
 import { resolveCronStorePath } from "../cron/store.js";
 import { normalizeHttpWebhookUrl } from "../cron/webhook-url.js";
+import { createDashboardSkillHook, syncCronJobsToDashboard } from "../dashboard/skill-hook.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { runHeartbeatOnce } from "../infra/heartbeat-runner.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
@@ -149,6 +150,19 @@ export function buildGatewayCronService(params: {
   const cronLogger = getChildLogger({ module: "cron" });
   const storePath = resolveCronStorePath(params.cfg.cron?.store);
   const cronEnabled = process.env.OPENCLAW_SKIP_CRON !== "1" && params.cfg.cron?.enabled !== false;
+
+  let cronInstance: CronService | undefined;
+  const dashboardSkillHook = createDashboardSkillHook({
+    broadcast: params.broadcast,
+    getJob: (id: string) => {
+      const job = cronInstance?.getJob(id);
+      if (!job) {
+        return undefined;
+      }
+      return { id: job.id, name: job.name };
+    },
+    getJobs: () => cronInstance?.getJobs() ?? [],
+  });
 
   const resolveCronAgent = (requested?: string | null) => {
     const runtimeConfig = loadConfig();
@@ -364,6 +378,7 @@ export function buildGatewayCronService(params: {
     log: getChildLogger({ module: "cron", storePath }),
     onEvent: (evt) => {
       params.broadcast("cron", evt, { dropIfSlow: true });
+      dashboardSkillHook(evt);
       if (evt.action === "finished") {
         const webhookToken = trimToOptionalString(params.cfg.cron?.webhookToken);
         const legacyWebhook = trimToOptionalString(params.cfg.cron?.webhook);
@@ -506,6 +521,25 @@ export function buildGatewayCronService(params: {
         });
       }
     },
+  });
+
+  // Assign cronInstance so dashboardSkillHook.getJob can access it
+  cronInstance = cron;
+
+  // Sync all configured cron jobs to the dashboard on startup
+  // This ensures existing jobs appear on Dashboard even before first execution
+  setImmediate(() => {
+    syncCronJobsToDashboard({
+      broadcast: params.broadcast,
+      getJob: (id: string) => {
+        const job = cronInstance?.getJob(id);
+        if (!job) {
+          return undefined;
+        }
+        return { id: job.id, name: job.name };
+      },
+      getJobs: () => cronInstance?.getJobs() ?? [],
+    });
   });
 
   return { cron, storePath, cronEnabled };

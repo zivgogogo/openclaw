@@ -60,6 +60,7 @@ import {
   refreshVisibleToolsEffectiveForCurrentSession as refreshVisibleToolsEffectiveForCurrentSessionInternal,
 } from "./controllers/agents.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import type { DashboardCard, DashboardFilters } from "./controllers/dashboard.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
@@ -393,6 +394,15 @@ export class OpenClawApp extends LitElement {
   @state() cronBusy = false;
 
   @state() updateAvailable: import("./types.js").UpdateAvailable | null = null;
+
+  // Dashboard (看板) state
+  @state() dashboardCards: DashboardCard[] = [];
+  @state() dashboardFilters: DashboardFilters = {
+    preset: "all",
+    date: new Date().toISOString().split("T")[0],
+  };
+  @state() dashboardLoading = false;
+  @state() dashboardPanelOpen = false;
 
   // Overview dashboard state
   @state() attentionItems: import("./types.js").AttentionItem[] = [];
